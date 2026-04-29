@@ -224,6 +224,59 @@ class ShopMindAgent:
                      for i, p in enumerate(ranked)]
             return "\n".join(lines) if lines else "No products to re-rank."
 
+
+        # Tool 4: Price Match Checker
+        def price_match(sku: str) -> str:
+            """
+            Check competitor prices for a product SKU.
+            Identifies if Best Buy can price match a lower price elsewhere.
+            Input: a single SKU (e.g. HP-001)
+            """
+            sku = sku.strip().upper()
+            product = next((p for p in self._catalog if p["sku"] == sku), None)
+            if not product:
+                return f"SKU {sku} not found in catalog."
+
+            bby_price = product.get("sale_price") or product["price"]
+            competitors = product.get("competitor_prices", {})
+
+            if not competitors:
+                return (
+                    f"{product['name']} — Best Buy: ${bby_price:.2f}. "
+                    "No competitor pricing data available."
+                )
+
+            lines = [f"{product['name']}"]
+            lines.append(f"Best Buy price: ${bby_price:.2f}")
+            lines.append("Competitor prices:")
+
+            cheapest_store = None
+            cheapest_price = bby_price
+
+            for store, price in sorted(competitors.items(), key=lambda x: x[1]):
+                diff = bby_price - price
+                if price < bby_price:
+                    lines.append(
+                        f"  {store}: ${price:.2f} "
+                        f"(${diff:.2f} cheaper — PRICE MATCH ELIGIBLE)"
+                    )
+                    if price < cheapest_price:
+                        cheapest_price = price
+                        cheapest_store = store
+                else:
+                    lines.append(f"  {store}: ${price:.2f}")
+
+            if cheapest_store:
+                savings = bby_price - cheapest_price
+                lines.append(
+                    f"Recommendation: Match {cheapest_store} at ${cheapest_price:.2f}. "
+                    f"Customer saves ${savings:.2f} and keeps their Best Buy purchase."
+                )
+            else:
+                lines.append("Best Buy has the lowest price. No price match needed.")
+
+            return "\n".join(lines)
+
         tools = [
             Tool(name="RAGRetriever", func=rag_retrieve,
                  description="Semantic search over product catalog using dense+sparse hybrid retrieval. "
@@ -236,6 +289,11 @@ class ShopMindAgent:
                  description="Re-rank candidate products by relevance to user query. "
                               "Use after retrieval to pick the single best match. "
                               "Input format: 'user query | SKU1,SKU2,SKU3'"),
+            Tool(name="PriceMatchChecker", func=price_match,
+                 description="Check competitor prices for a product and identify price match opportunities. "
+                              "Use when a customer asks about price matching, mentions seeing it cheaper "
+                              "elsewhere, or when proactively showing the best available price. "
+                              "Input: a single product SKU (e.g. HP-001)."),
         ]
 
         agent = create_react_agent(self.llm, tools, REACT_PROMPT)

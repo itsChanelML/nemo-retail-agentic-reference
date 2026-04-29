@@ -125,6 +125,10 @@ def load_csv_catalog(csv_path: Path = PRODUCTS_CSV) -> list[dict]:
                     "storage":          row.get("storage", "").strip(),
                     "battery_life":     row.get("battery_life", "").strip(),
                     "weight":           row.get("weight", "").strip(),
+                    # Competitor pricing for price match tool
+                    "competitor_prices": __import__("json").loads(
+                        row.get("competitor_prices", "{}") or "{}"
+                    ),
                     # Rich description built from all fields — used for embedding
                     "description":      _build_description(row),
                 }

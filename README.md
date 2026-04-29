@@ -20,10 +20,7 @@
 [![NVIDIA NIM](https://img.shields.io/badge/NVIDIA-NIM%20%7C%20Nemotron-76b900?style=flat-square&logo=nvidia&logoColor=white)](https://build.nvidia.com)
 [![Vercel](https://img.shields.io/badge/Deploy-Vercel-000000?style=flat-square&logo=vercel&logoColor=white)](https://vercel.com)
 
-ShopMind is a reference implementation of the intelligent product discovery system a retail brand like Best Buy would deploy for in-store sales specialists. It gives a specialist a way to take a customer's natural language request and return a cited, stock-aware recommendation in seconds. 
-
-No more manually searching terminals and guessing. The system knows what is in stock, what is on sale, and which store carries it. It is powered by NVIDIA Nemotron and a hybrid RAG pipeline that understands the difference between "noise-canceling headphones for the gym" and "WH-1000XM5."
-
+ShopMind is a reference implementation of the intelligent product discovery system a retail brand like Best Buy would deploy for in-store sales specialists. It gives a specialist a way to take a customer's natural language request and return a cited, stock-aware recommendation in seconds. No more manually searching terminals and guessing. The system knows what is in stock, what is on sale, and which store carries it. It is powered by NVIDIA Nemotron and a hybrid RAG pipeline that understands the difference between "noise-canceling headphones for the gym" and "WH-1000XM5."
 
 </div>
 
@@ -53,7 +50,7 @@ ShopMind uses a LangChain **ReAct** (Reasoning + Acting) loop. For every query t
 4. **Repeats** — iterates until it has enough to answer confidently
 5. **Responds** — synthesizes a grounded answer through Nemotron with product citations
 
-### The Three Tools
+### The Four Tools
 
 **RAG Retriever** — semantic + keyword hybrid search. Uses FAISS dense embeddings (60%) combined with BM25 sparse retrieval (40%). Catches both "comfortable headphones for long flights" (semantic) and "WH-1000XM5" (exact keyword).
 
@@ -61,28 +58,33 @@ ShopMind uses a LangChain **ReAct** (Reasoning + Acting) loop. For every query t
 
 **Cross-Encoder ReRanker** — precision pass using `cross-encoder/ms-marco-MiniLM-L-6-v2`. Scores (query, product) pairs directly to find the best match from the retrieval shortlist.
 
+**Price Match Checker** — looks up competitor pricing for any product SKU and identifies price match opportunities. Compares Best Buy's current price against Amazon, Target, Walmart, and Costco. When a competitor is cheaper, the tool flags it as price match eligible and tells the specialist exactly how much the customer would save. Best Buy matches prices from major competitors — this tool gives a specialist that answer in one step instead of manually searching.
+
 ### Example Reasoning Trace
 
 ```
-User: "Best TV under $1000 available at Target"
+User: "Customer saw the Sony WH-1000XM5 headphones cheaper on Amazon. Can we match it?"
 
-Thought: User wants a TV, max_price=1000, store=Target, in_stock=true. Filter first.
-Action: ProductFilter
-Input: category=televisions, max_price=1000, store=Target, in_stock=true
-Observation: [TV-001] LG OLED C3 65" — $999.99 sale | Target ✓
-             [TV-004] Hisense QLED Q6 65" — $449.99 sale | Target ✓
-             [TV-005] Hisense U8K Mini-LED 65" — $697.99 sale | Target ✓
+Thought: Customer wants a price match on a specific product. I should check competitor prices.
+Action: RAGRetriever
+Input: Sony WH-1000XM5 headphones
+Observation: [SKU: HP-001] Sony WH-1000XM5 — Best Buy: $279.99 (sale) | In stock: true
 
-Thought: Good candidates. Rerank to find the best match.
-Action: ReRanker
-Input: best TV under 1000 Target | TV-001, TV-004, TV-005
-Observation: 1. TV-001 LG OLED C3 (score: 0.94)  2. TV-005 Hisense U8K (score: 0.81)
+Thought: Found the SKU. Now check competitor prices.
+Action: PriceMatchChecker
+Input: HP-001
+Observation: Sony WH-1000XM5
+             Best Buy price: $279.99
+             Competitor prices:
+               Amazon: $249.99 ($30.00 cheaper — PRICE MATCH ELIGIBLE)
+               Target: $279.99
+             Recommendation: Match Amazon at $249.99.
+             Customer saves $30.00 and keeps their Best Buy purchase.
 
-Final Answer: For under $1000 at Target, the LG OLED C3 65" at $999.99 is the
-standout — OLED self-lit pixels deliver perfect blacks no LCD can match at this
-price. For budget headroom, the Hisense U8K Mini-LED at $697.99 is the best LCD
-alternative with 1500 local dimming zones.
-Sources: TV-001, TV-005
+Final Answer: Good news — Best Buy can match Amazon's price of $249.99 on the
+Sony WH-1000XM5. That saves your customer $30 right now. The headphones are
+in stock and ready to go. Just pull up the Amazon listing to complete the match.
+Sources: HP-001
 ```
 
 ---
@@ -119,7 +121,7 @@ rating               Customer review average on 0–5 scale
 review_count         Total number of customer reviews
 in_stock             true or false
 stock_quantity       Units currently available (0 if out of stock)
-store_availability   Pipe-separated retailer list: Best Buy|Target|Amazon|B&H|Walmart
+store_availability   Pipe-separated retailer list: Best Buy|Amazon|B&H|Walmart
 description          Rich embedding-ready paragraph covering features, use cases,
                      differentiators, and target audience — this is the primary
                      field used for semantic retrieval
@@ -133,6 +135,9 @@ weight               Product weight in grams or kilograms
 color                Primary color / finish
 model_number         Official manufacturer part number
 warranty_years       Warranty length in years
+competitor_prices    JSON object of competitor prices: {"Amazon": 249.99, "Target": 279.99}
+                     Used by the PriceMatchChecker tool. Retailers included where available:
+                     Amazon, Target, Walmart, Costco
 ```
 
 ### Intentional Data Design Decisions
@@ -165,14 +170,14 @@ warranty_years       Warranty length in years
 └───────────┬─────────────────┬──────────────────┬────────────┘
             │                 │                  │
             ▼                 ▼                  ▼
-   ┌──────────────┐  ┌──────────────┐  ┌─────────────────┐
-   │RAG Retriever │  │Product Filter│  │  ReRanker       │
-   │              │  │              │  │                 │
-   │ FAISS dense  │  │ price, brand,│  │cross-encoder/   │
-   │   60% wt     │  │ category,    │  │ms-marco-MiniLM  │
-   │ BM25 sparse  │  │ store, stock,│  │  precision pass │
-   │   40% wt     │  │ on_sale      │  └─────────────────┘
-   │              │  └──────────────┘
+   ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐
+   │RAG Retriever │  │Product Filter│  │  ReRanker    │  │ PriceMatch       │
+   │              │  │              │  │              │  │ Checker          │
+   │ FAISS dense  │  │ price, brand,│  │cross-encoder/│  │                  │
+   │   60% wt     │  │ category,    │  │ms-marco-     │  │ Amazon, Target,  │
+   │ BM25 sparse  │  │ store, stock,│  │MiniLM        │  │ Walmart, Costco  │
+   │   40% wt     │  │ on_sale      │  └──────────────┘  │ price comparison │
+   │              │  └──────────────┘                    └──────────────────┘
    │ HuggingFace  │
    │all-MiniLM-L6 │
    └──────────────┘
@@ -246,15 +251,15 @@ cd frontend && npm install && npm run dev
 ## Try These Queries
 
 ```
-Best 65-inch TV under $1000 at Target
+Best 65-inch TV under $1000 at Best Buy
 Show me Sony cameras in stock
 What laptops have 32GB RAM under $1500?
 Compare Dyson and iRobot robot vacuums
 Noise-canceling headphones for gym use under $300
 What products are on sale right now?
-Tablets available at Walmart under $200
+Can we price match the Sony WH-1000XM5?
+Customer saw the Samsung Galaxy S24 Ultra cheaper on Amazon — can we match it?
 Best smartwatch for marathon training
-Monitors available at B&H Photo
 Which camera is out of stock?
 ```
 
@@ -323,19 +328,19 @@ nemo-retail-agentic-reference/
 └── .env.example
 ```
 
+---
+
 ## Built by
 
-**Chanel Power**
-Founder & CEO, Mentor Me Collective · Senior ML Engineer · Technical Startup Advisor · NVIDIA Certified Builder · Google Certified Generative AI Leader
+**Chanel Power** — Founder & CEO, Mentor Me Collective · Senior ML Engineer · Google Certified Generative AI Leader
 
-[LinkedIn](https://linkedin.com/in/powerc1) · [@itsChanelML](https://linktr.ee/itsChanelML)
+[LinkedIn](https://linkedin.com/in/itsChanelML) · [@itsChanelML](https://twitter.com/itsChanelML)
 
+> *Real skills. Real careers. Master Differently.*
 
 ---
 
 <div align="center">
-
 Built to demonstrate agentic AI integration on NVIDIA's stack —<br/>
-the same pattern retail startups need to ship production AI at scale.
-
+the pattern retail startups need to ship production AI at scale.
 </div>
