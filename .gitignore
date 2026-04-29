@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Next.js
+frontend/.next/
+frontend/node_modules/
+frontend/out/
+
+# ML models cache
+.cache/
+api/.cache/
+
+# Vercel
+.vercel/
+
+# OS
+.DS_Store
+Thumbs.db
