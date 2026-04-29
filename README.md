@@ -20,7 +20,9 @@
 [![NVIDIA NIM](https://img.shields.io/badge/NVIDIA-NIM%20%7C%20Nemotron-76b900?style=flat-square&logo=nvidia&logoColor=white)](https://build.nvidia.com)
 [![Vercel](https://img.shields.io/badge/Deploy-Vercel-000000?style=flat-square&logo=vercel&logoColor=white)](https://vercel.com)
 
-*A production-grade reference implementation showing how AI-native retail startups can integrate NVIDIA Nemotron with open-source RAG infrastructure — grounded answers, cited sources, transparent agent reasoning, real inventory awareness.*
+*ShopMind is a reference implementation of the kind of intelligent product discovery system a retail brand like Best Buy would deploy to help in-store sales specialists find the right product for a customer in real time — grounded in live inventory, aware of what's on sale, and transparent about its reasoning. 
+
+Rather than a specialist manually searching terminals and guessing, ShopMind takes a natural language description of a customer's needs and returns a cited, stock-aware recommendation in seconds — powered by NVIDIA Nemotron and a hybrid RAG pipeline that knows the difference between "noise-canceling headphones for the gym" and "WH-1000XM5."*
 
 </div>
 
