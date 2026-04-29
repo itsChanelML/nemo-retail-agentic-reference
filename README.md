@@ -332,11 +332,10 @@ nemo-retail-agentic-reference/
 
 ## Built by
 
-**Chanel Power** — Founder & CEO, Mentor Me Collective · Senior ML Engineer · Google Certified Generative AI Leader
+**Chanel Power** — Senior ML Engineer · Technical Startup Advisor · NVIDIA Certified Builder · Google Certified Generative AI Leader · Founder & CEO, Mentor Me Collective · 
 
-[LinkedIn](https://linkedin.com/in/itsChanelML) · [@itsChanelML](https://twitter.com/itsChanelML)
+[LinkedIn](https://linkedin.com/in/itsChanelML) · [@itsChanelML](https://linktr.ee/itsChanelML)
 
-> *Real skills. Real careers. Master Differently.*
 
 ---
 
