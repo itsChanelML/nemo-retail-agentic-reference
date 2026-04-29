@@ -219,8 +219,8 @@ Every ShopMind response includes:
 
 ### 1. Clone and configure
 ```bash
-git clone https://github.com/itsChanelML/nemo-retail-agentic-reference.git
-cd nemo-retail-agentic-reference
+git clone https://github.com/itsChanelML/nemo-retail-sales-intelligence.git
+cd nemo-retail-sales-intelligence
 cp .env.example .env
 # Add your NVIDIA_API_KEY to .env
 ```
@@ -302,7 +302,7 @@ python scripts/eval.py
 ## Project Structure
 
 ```
-nemo-retail-agentic-reference/
+nemo-retail-sales-intelligence/
 ├── api/
 │   ├── main.py                # FastAPI · /query · /query/stream · /health
 │   ├── agent.py               # LangChain ReAct agent · Nemotron · 3 tools
