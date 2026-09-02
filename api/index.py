@@ -7,7 +7,7 @@ This file re-exports the FastAPI app instance.
 import sys
 import os
 
-# Add api directory to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "api"))
+# Add this file's own directory (api/) to the path
+sys.path.insert(0, os.path.dirname(__file__))
 
 from main import app  # noqa: F401 — Vercel expects `app`

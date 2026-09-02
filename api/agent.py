@@ -109,7 +109,7 @@ class ShopMindAgent:
         if self._initialized:
             return
 
-        print("Loading product catalog (Etsy API or seed fallback)...")
+        print("Loading product catalog (Best Buy CSV catalog)...")
         catalog = await load_bestbuy_catalog(fallback_to_seed=True)
         self._catalog = catalog
 
